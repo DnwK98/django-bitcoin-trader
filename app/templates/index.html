@@ -1,0 +1,88 @@
+{% extends "template.html" %}
+
+{% block body %}
+    <div class="row pt-4">
+        <div class="col-9">
+            <canvas id="lastDayChart" width="100%"></canvas>
+        </div>
+        <div class="col-3 pt-4">
+            <div id="predicted-5" class="alert text-center" role="alert">
+                <span class="value" style="font-size: 2rem;"></span>USD<br />
+                <span>+5 minutes</span>
+            </div>
+            <div id="predicted-10" class="alert text-center" role="alert">
+                <span class="value" style="font-size: 2rem;"></span>USD<br />
+                <span>+10 minutes</span>
+            </div>
+            <div id="predicted-15" class="alert text-center" role="alert">
+                <span class="value" style="font-size: 2rem;"></span>USD<br />
+                <span>+15 minutes</span>
+            </div>
+        </div>
+        <div class="col-12 pt-5">
+            <canvas id="lastMonthChart" width="100%"></canvas>
+        </div>
+    </div>
+
+    {{ monthData|json_script:"month-data" }}
+    {{ dayData|json_script:"day-data" }}
+    {{ predictedData|json_script:"predicted-data" }}
+    <script>
+
+        $(document).ready(function () {
+            const dayData = JSON.parse(document.getElementById('day-data').textContent);
+            const predictedData = JSON.parse(document.getElementById('predicted-data').textContent);
+            const lastValue = dayData[dayData.length - 1].value;
+            $("#predicted-5 .value").text(Math.round(predictedData[0] - lastValue));
+            $("#predicted-5").addClass(predictedData[0] - lastValue > 0 ? 'alert-success' : 'alert-danger')
+
+            $("#predicted-10 .value").text(Math.round(predictedData[1] - lastValue));
+            $("#predicted-10").addClass(predictedData[1] - lastValue > 0 ? 'alert-success' : 'alert-danger')
+
+            $("#predicted-15 .value").text(Math.round(predictedData[2] - lastValue));
+            $("#predicted-15").addClass(predictedData[2] - lastValue > 0 ? 'alert-success' : 'alert-danger')
+
+
+            let dateLabels = dayData.map((a) => new Date(a.date));
+            const lastDate = dateLabels[dateLabels.length - 1];
+            dateLabels.push(new Date(lastDate.getTime() + 5*60000));
+            dateLabels.push(new Date(lastDate.getTime() + 10*60000));
+            dateLabels.push(new Date(lastDate.getTime() + 15*60000));
+            dateLabels = dateLabels.map((a) => a.toLocaleTimeString());
+
+            const lastDayChartContext = document.getElementById('lastDayChart').getContext('2d');
+            new Chart(lastDayChartContext, {
+                type: 'line',
+                data: {
+                    labels: dateLabels,
+                    datasets: [
+                        {
+                            label: 'BTCUSD',
+                            data: dayData.map((a) => a.value),
+                            borderColor: '#888888',
+                        },
+                        {
+                            label: 'Predicted',
+                            data: dayData.map((a) => null).concat(predictedData),
+                            borderColor: '#CC33CC',
+                        }
+                    ]
+                },
+            });
+
+            const monthData = JSON.parse(document.getElementById('month-data').textContent)
+            const lastMonthChartContext = document.getElementById('lastMonthChart').getContext('2d');
+            new Chart(lastMonthChartContext, {
+                type: 'line',
+                data: {
+                    labels: monthData.map((a) => a.date),
+                    datasets: [{
+                        label: 'BTCUSD',
+                        data: monthData.map((a) => a.value),
+                        borderColor: '#888888',
+                    }],
+                },
+            });
+        })
+    </script>
+{% endblock %}
